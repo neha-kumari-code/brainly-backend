@@ -1,10 +1,9 @@
 import jwt, { decode } from 'jsonwebtoken'
 import type { Response,Request,NextFunction}  from 'express';
-import { JWT_SECRET } from './config.js';
 export const authUser=async(req:Request,res:Response,next:NextFunction)=>{
     try {
         const token=req.headers["authorization"];
-        const decode_token=jwt.verify(token as string ,JWT_SECRET)
+        const decode_token=jwt.verify(token as string ,process.env.JWT_SECRET as string)
         // @ts-ignore
         req.userId=decode_token.id;
         next()

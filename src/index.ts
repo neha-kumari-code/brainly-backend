@@ -1,11 +1,12 @@
 import express from 'express'
 import jwt from 'jsonwebtoken'
+import dotenv from "dotenv"
 import mongoose, { connect } from 'mongoose'
 import bcrypt from 'bcrypt'
 import { contentModel, userModel } from './db.js';
-import { JWT_SECRET } from './config.js';
 import { authUser } from './middleware.js';
 const app=express();
+dotenv.config()
 app.use(express.json())
 app.post('/api/v1/signup',async(req,res)=>{
     try {
@@ -52,7 +53,7 @@ app.post('/api/v1/signin',async(req,res)=>{
     if(user){
         const passMatch=await bcrypt.compare(password,user.password)
         if(passMatch){
-            const token=await jwt.sign({id:user._id},JWT_SECRET)
+            const token=await jwt.sign({id:user._id},process.env.JWT_SECRET as string)
             return res.json({
                 success:true,
                 token
