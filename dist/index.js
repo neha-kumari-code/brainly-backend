@@ -2,9 +2,9 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose, { connect } from 'mongoose';
 import bcrypt from 'bcrypt';
-import { contentModel, userModel } from './db.js';
-import { JWT_SECRET } from './config.js';
+import { contentModel, linkModel, userModel } from './db.js';
 import { authUser } from './middleware.js';
+import { random } from './utils.js';
 const app = express();
 app.use(express.json());
 app.post('/api/v1/signup', async (req, res) => {
@@ -52,7 +52,7 @@ app.post('/api/v1/signin', async (req, res) => {
     if (user) {
         const passMatch = await bcrypt.compare(password, user.password);
         if (passMatch) {
-            const token = await jwt.sign({ id: user._id }, JWT_SECRET);
+            const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET);
             return res.json({
                 success: true,
                 token
@@ -77,7 +77,6 @@ app.post('/api/v1/content', authUser, async (req, res) => {
         const link = req.body.link;
         const title = req.body.title;
         // userId middleware se aayega
-        // @ts-ignore
         const userId = req.userId;
         await contentModel.create({
             link,
@@ -99,7 +98,6 @@ app.post('/api/v1/content', authUser, async (req, res) => {
 });
 app.get('/api/v1/content', authUser, async (req, res) => {
     try {
-        // @ts-ignore
         const userId = req.userId;
         const content = await contentModel.find({ userId: userId }).populate('userId', 'username');
         res.json({
@@ -118,7 +116,6 @@ app.delete('/api/v1/content', authUser, async (req, res) => {
     try {
         const contentId = req.body.contentId;
         await contentModel.deleteMany({ contentId,
-            //@ts-ignore
             userId: req.userId
         });
         return res.json({
@@ -129,15 +126,54 @@ app.delete('/api/v1/content', authUser, async (req, res) => {
     catch (error) {
     }
 });
-app.post('/api/v1/brain/share', authUser, (req, res) => {
+app.post('/api/v1/brain/share', authUser, async (req, res) => {
     try {
-        //@ts-ignore
-        const userId = req.userId;
+        const share = req.body.share;
+        if (share) {
+            const hash = random(10);
+            await linkModel.create({
+                userId: req.userId,
+                hash
+            });
+            return res.json({
+                shareableLink: '/share/' + hash
+            });
+        }
+        else {
+            await linkModel.deleteOne({ userId: req.userId });
+            return res.json({
+                success: true,
+                message: 'removed Shareable Link'
+            });
+        }
     }
     catch (error) {
     }
 });
-app.get('/api/v1/brain/:shareLink', (req, res) => {
+app.get('/api/v1/brain/:shareLink', async (req, res) => {
+    try {
+        const hash = req.params.shareLink;
+        const link = await linkModel.findOne({ hash });
+        if (!link) {
+            return res.status(411).json({
+                message: 'Sorry Wrong Input'
+            });
+        }
+        // user detail le lo
+        const user = await userModel.findById(link.userId);
+        if (!user) {
+            return res.status(411).json({
+                message: 'user not found, error should ideally not happen'
+            });
+        }
+        const content = await contentModel.findOne({ userId: link.userId });
+        return res.json({
+            username: user.username,
+            content
+        });
+    }
+    catch (error) {
+    }
 });
 app.listen(3000);
 //# sourceMappingURL=index.js.map

@@ -1,2 +1,2 @@
-export const JWT_SECRET = '383ewj8';
+export {};
 //# sourceMappingURL=config.js.map

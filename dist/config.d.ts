@@ -1,2 +1,2 @@
-export declare const JWT_SECRET = "383ewj8";
+export {};
 //# sourceMappingURL=config.d.ts.map
